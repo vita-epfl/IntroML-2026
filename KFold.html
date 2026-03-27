@@ -29,7 +29,7 @@
         /* Visualization Layout */
         .vis-area { margin-top: 20px; display: flex; gap: 30px; align-items: flex-start; }
         
-        /* Left: Data Rows */
+        /* Left: Data Rows (The Vertical Array) */
         .data-container { width: 35%; display: flex; flex-direction: column; gap: 4px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; }
         .data-container h4 { margin: 0 0 10px 0; text-align: center; color: #aaa; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px;}
         .data-row { background-color: #333; padding: 8px 15px; border-radius: 4px; font-family: monospace; font-size: 0.95rem; color: #888; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); border: 1px solid transparent; }
@@ -50,8 +50,8 @@
         .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
         .panel { padding: 20px; background-color: #000; border-radius: 8px; font-family: monospace; font-size: 1.05rem; border-left: 4px solid #555; display: flex; flex-direction: column; gap: 12px; min-height: 120px;}
-        .panel-code { border-left-color: #0a9396; }
-        .panel-log { border-left-color: #e85d04; }
+        .panel-code { border-left-color: #0a9396; line-height: 1.4; }
+        .panel-log { border-left-color: #e85d04; line-height: 1.4; }
         
         .highlight { color: #94d2bd; font-weight: bold; }
         .string { color: #e9c46a; }
@@ -70,7 +70,7 @@
     <div class="container">
         
         <div class="card">
-            <h3>Dataset Size Matters: The "Polling" Analogy</h3>
+            <h3>Dataset Size Matters (The "Polling" Analogy)</h3>
             <p>Evaluating a model is exactly like conducting a political poll. Your <strong>Validation Set</strong> is the group of people you are polling to see if your hyperparameter (like $\lambda$) is good.</p>
             
             <div class="comparison">
@@ -93,7 +93,7 @@
             <div class="vis-area">
                 
                 <div class="data-container" id="data-rows">
-                    <h4>Dataset (X, y)</h4>
+                    <h4>Dataset (X, y) Arrays</h4>
                     </div>
 
                 <div class="interaction-container">
