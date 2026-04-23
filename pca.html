@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIVIL-226: Principal Component Analysis</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* Header & Tabs */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+            color: #e0e0e0;
+        }
+
+        .header h2 {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #0a9396;
+            margin-top: 0;
+        }
+
+        .tab-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            max-width: 900px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #aaa;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            background: #2a2a2a;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: #0a9396;
+            box-shadow: 0 4px 10px rgba(10, 147, 150, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            animation: fadeIn 0.3s ease;
+            max-width: 900px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Panels and Layout */
+        .layout-grid {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            margin-top: 10px;
+            align-items: flex-start;
+        }
+
+        .canvas-container {
+            background-color: #0a0a0a;
+            border-radius: 8px;
+            border: 1px solid #444;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            padding: 10px;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #333;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #0a9396;
+        }
+
+        .info-box {
+            padding: 20px;
+            background-color: #000;
+            font-size: 1.05rem;
+            border-radius: 6px;
+            border-left: 4px solid #0a9396;
+            width: 100%;
+            box-sizing: border-box;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #fff;
+            font-size: 1.15rem;
+        }
+
+        .highlight-pc1 {
+            color: #e85d04;
+            font-weight: bold;
+        }
+
+        .highlight-pc2 {
+            color: #00b4d8;
+            font-weight: bold;
+        }
+
+        .highlight-pc3 {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* Bar Chart Styles */
+        .bar-chart {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bar-label {
+            width: 60px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .bar-track {
+            flex: 1;
+            background: #222;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .bar-val {
+            width: 60px;
+            text-align: right;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .fill-pc1 {
+            background-color: #e85d04;
+        }
+
+        .fill-pc2 {
+            background-color: #00b4d8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>CIVIL-226: Intro to ML</h1>
+        <h2>Principal Component Analysis (PCA)</h2>
+    </div>
+
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('pipelineTab', this)">1. The 2D Pipeline</button>
+        <button class="tab-btn" onclick="switchTab('varianceTab', this)">2. Variance Explained</button>
+        <button class="tab-btn" onclick="switchTab('dimTab', this)">3. 3D Dimensionality Reduction</button>
+    </div>
+
+    <div id="pipelineTab" class="tab-content active">
+        <div class="controls" style="margin-bottom: 20px;">
+            <label for="stepSlider"><strong>Algorithm Step: <span id="stepLabel">1</span> / 4</strong></label>
+            <input type="range" id="stepSlider" min="1" max="4" value="1" style="max-width: 500px;">
+        </div>
+        <div class="layout-grid">
+            <div class="canvas-container">
+                <canvas id="canvasPipeline" width="450" height="450"></canvas>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="info-box" id="pipelineInfo">
+                    <strong>Step 1: Raw Data</strong><br><br>
+                    We start with an uncentered 2D dataset. The features (X and Y) have different means and are
+                    correlated.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="varianceTab" class="tab-content">
+        <div class="controls" style="margin-bottom: 20px;">
+            <label for="corrSlider"><strong>Adjust Data Correlation (Spread)</strong></label>
+            <input type="range" id="corrSlider" min="0" max="95" value="75" style="max-width: 500px;">
+        </div>
+        <div class="layout-grid">
+            <div class="canvas-container">
+                <canvas id="canvasVariance" width="450" height="450"></canvas>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="info-box" style="border-left-color: #e85d04;">
+                    <strong>Eigenvalues & Variance</strong><br><br>
+                    Eigenvalues ($\lambda$) dictate the "length" of the principal components. The larger the eigenvalue,
+                    the more variance that component explains.<br><br>
+                    Notice how stretching the data into a line pushes almost all the variance into <span
+                        class="highlight-pc1">PC1</span>, allowing us to drop PC2 entirely with minimal information
+                    loss.
+
+                    <div class="bar-chart">
+                        <div class="bar-row">
+                            <div class="bar-label highlight-pc1">PC1 ($\lambda_1$)</div>
+                            <div class="bar-track">
+                                <div class="bar-fill fill-pc1" id="bar-pc1" style="width: 50%;"></div>
+                            </div>
+                            <div class="bar-val highlight-pc1" id="val-pc1">50%</div>
+                        </div>
+                        <div class="bar-row">
+                            <div class="bar-label highlight-pc2">PC2 ($\lambda_2$)</div>
+                            <div class="bar-track">
+                                <div class="bar-fill fill-pc2" id="bar-pc2" style="width: 50%;"></div>
+                            </div>
+                            <div class="bar-val highlight-pc2" id="val-pc2">50%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dimTab" class="tab-content">
+        <div class="controls" style="margin-bottom: 20px;">
+            <label for="stepSlider3D"><strong>Reduction Step: <span id="stepLabel3D">1</span> / 3</strong></label>
+            <input type="range" id="stepSlider3D" min="1" max="3" value="1" style="max-width: 500px;">
+        </div>
+        <div class="layout-grid">
+            <div class="canvas-container">
+                <canvas id="canvas3D" width="450" height="450"></canvas>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="info-box" id="info3D" style="border-left-color: #10b981;">
+                    <strong>Step 1: The 3D Cloud</strong><br><br>
+                    Here is a 3D dataset. Even though the points exist in 3 dimensions (X, Y, Z), notice how the overall
+                    shape is roughly flat, like a pancake or a surfboard.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Shared Math & Utils (2D) ---
+        function generateData(n, correlation, offsetX, offsetY) {
+            let pts = [];
+            for (let i = 0; i < n; i++) {
+                let u1 = Math.random(), u2 = Math.random();
+                let z1 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                let z2 = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2 * Math.PI * u2);
+                let x = z1 * 60;
+                let y = (correlation * z1 + Math.sqrt(1 - correlation * correlation) * z2) * 60;
+                pts.push({ x: x + offsetX, y: y + offsetY, ox: x + offsetX, oy: y + offsetY, cx: x, cy: y });
+            }
+            return pts;
+        }
+
+        function calculatePCA(pts) {
+            let n = pts.length;
+            let sxx = 0, syy = 0, sxy = 0;
+            pts.forEach(p => { sxx += (p.cx * p.cx); syy += (p.cy * p.cy); sxy += (p.cx * p.cy); });
+            sxx /= n; syy /= n; sxy /= n;
+
+            let trace = sxx + syy;
+            let det = (sxx * syy) - (sxy * sxy);
+            let lambda1 = (trace / 2) + Math.sqrt((trace * trace) / 4 - det);
+            let lambda2 = (trace / 2) - Math.sqrt((trace * trace) / 4 - det);
+
+            let v1 = { x: sxy, y: lambda1 - sxx };
+            let mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+            if (mag1 > 0) { v1.x /= mag1; v1.y /= mag1; }
+
+            let v2 = { x: sxy, y: lambda2 - sxx };
+            let mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+            if (mag2 > 0) { v2.x /= mag2; v2.y /= mag2; }
+
+            if (v1.x < 0) { v1.x *= -1; v1.y *= -1; }
+            if (v2.y < 0) { v2.x *= -1; v2.y *= -1; }
+            return { l1: lambda1, l2: lambda2, v1: v1, v2: v2 };
+        }
+
+        // --- UI Logic ---
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+
+            if (tabId === 'pipelineTab') drawPipeline();
+            if (tabId === 'varianceTab') drawVariance();
+        }
+
+        // --- Tab 1: Pipeline ---
+        const ctxP = document.getElementById('canvasPipeline').getContext('2d');
+        const sliderP = document.getElementById('stepSlider');
+        const infoP = document.getElementById('pipelineInfo');
+        let dataP = generateData(150, 0.8, 80, 50);
+        let pcaP = calculatePCA(dataP);
+
+        const explanationsP = [
+            "<strong>Step 1: Raw Data</strong><br><br>We start with an uncentered 2D dataset. The features have different means and are correlated.",
+            "<strong>Step 2: Mean Centering</strong><br><br>We subtract the mean from the data. It is now centered exactly at the origin (0,0). This is required for PCA.",
+            "<strong>Step 3: Eigenvectors</strong><br><br>We calculate the covariance matrix. Its eigenvectors dictate the directions of maximum spread. <br><br>The <span class='highlight-pc1'>Orange Arrow is PC1</span> (Largest Eigenvalue). The <span class='highlight-pc2'>Blue Arrow is PC2</span>.",
+            "<strong>Step 4: Dimensionality Reduction</strong><br><br>We project the data entirely onto PC1. The 2D dataset is now a 1D dataset along the orange line. The variance along PC2 was dropped, but the primary shape is preserved."
+        ];
+
+        function drawPipeline() {
+            let step = parseInt(sliderP.value);
+            document.getElementById('stepLabel').innerText = step;
+            infoP.innerHTML = explanationsP[step - 1];
+
+            ctxP.clearRect(0, 0, 450, 450);
+            let cx = 225, cy = 225;
+
+            ctxP.strokeStyle = '#333'; ctxP.lineWidth = 1;
+            ctxP.beginPath(); ctxP.moveTo(0, cy); ctxP.lineTo(450, cy);
+            ctxP.moveTo(cx, 0); ctxP.lineTo(cx, 450); ctxP.stroke();
+
+            if (step >= 3) {
+                ctxP.lineWidth = 2;
+                ctxP.strokeStyle = 'rgba(0, 180, 216, 0.3)';
+                ctxP.beginPath(); ctxP.moveTo(cx - pcaP.v2.x * 300, cy + pcaP.v2.y * 300); ctxP.lineTo(cx + pcaP.v2.x * 300, cy - pcaP.v2.y * 300); ctxP.stroke();
+                ctxP.strokeStyle = 'rgba(232, 93, 4, 0.3)';
+                ctxP.beginPath(); ctxP.moveTo(cx - pcaP.v1.x * 300, cy + pcaP.v1.y * 300); ctxP.lineTo(cx + pcaP.v1.x * 300, cy - pcaP.v1.y * 300); ctxP.stroke();
+
+                let s1 = Math.sqrt(pcaP.l1) * 2; let s2 = Math.sqrt(pcaP.l2) * 2;
+                ctxP.lineWidth = 3;
+                ctxP.strokeStyle = '#e85d04'; ctxP.beginPath(); ctxP.moveTo(cx, cy); ctxP.lineTo(cx + pcaP.v1.x * s1, cy - pcaP.v1.y * s1); ctxP.stroke();
+                ctxP.strokeStyle = '#00b4d8'; ctxP.beginPath(); ctxP.moveTo(cx, cy); ctxP.lineTo(cx + pcaP.v2.x * s2, cy - pcaP.v2.y * s2); ctxP.stroke();
+            }
+
+            dataP.forEach(p => {
+                let px = cx, py = cy;
+                if (step === 1) { px += p.ox; py -= p.oy; }
+                if (step === 2 || step === 3) { px += p.cx; py -= p.cy; }
+                if (step === 4) {
+                    let dot = p.cx * pcaP.v1.x + p.cy * pcaP.v1.y;
+                    px += dot * pcaP.v1.x; py -= dot * pcaP.v1.y;
+                }
+                ctxP.fillStyle = step === 4 ? '#e85d04' : '#fff';
+                ctxP.beginPath(); ctxP.arc(px, py, 3, 0, Math.PI * 2); ctxP.fill();
+            });
+        }
+        sliderP.addEventListener('input', drawPipeline);
+
+        // --- Tab 2: Variance ---
+        const ctxV = document.getElementById('canvasVariance').getContext('2d');
+        const sliderV = document.getElementById('corrSlider');
+
+        function drawVariance() {
+            let corr = parseInt(sliderV.value) / 100;
+            let dataV = generateData(200, corr, 0, 0);
+            let pcaV = calculatePCA(dataV);
+
+            ctxV.clearRect(0, 0, 450, 450);
+            let cx = 225, cy = 225;
+
+            ctxV.strokeStyle = '#333'; ctxV.lineWidth = 1;
+            ctxV.beginPath(); ctxV.moveTo(0, cy); ctxV.lineTo(450, cy);
+            ctxV.moveTo(cx, 0); ctxV.lineTo(cx, 450); ctxV.stroke();
+
+            ctxV.fillStyle = '#888';
+            dataV.forEach(p => { ctxV.beginPath(); ctxV.arc(cx + p.cx, cy - p.cy, 3, 0, Math.PI * 2); ctxV.fill(); });
+
+            let s1 = Math.sqrt(pcaV.l1) * 2; let s2 = Math.sqrt(pcaV.l2) * 2;
+            let angle = Math.atan2(-pcaV.v1.y, pcaV.v1.x);
+
+            ctxV.beginPath(); ctxV.ellipse(cx, cy, s1, s2, angle, 0, 2 * Math.PI);
+            ctxV.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctxV.lineWidth = 2; ctxV.stroke();
+
+            ctxV.lineWidth = 3;
+            ctxV.strokeStyle = '#e85d04'; ctxV.beginPath(); ctxV.moveTo(cx, cy); ctxV.lineTo(cx + pcaV.v1.x * s1, cy - pcaV.v1.y * s1); ctxV.stroke();
+            ctxV.strokeStyle = '#00b4d8'; ctxV.beginPath(); ctxV.moveTo(cx, cy); ctxV.lineTo(cx + pcaV.v2.x * s2, cy - pcaV.v2.y * s2); ctxV.stroke();
+
+            let totalVar = pcaV.l1 + pcaV.l2;
+            let p1 = (pcaV.l1 / totalVar) * 100; let p2 = (pcaV.l2 / totalVar) * 100;
+            document.getElementById('bar-pc1').style.width = p1 + '%'; document.getElementById('val-pc1').innerText = p1.toFixed(1) + '%';
+            document.getElementById('bar-pc2').style.width = p2 + '%'; document.getElementById('val-pc2').innerText = p2.toFixed(1) + '%';
+        }
+        sliderV.addEventListener('input', drawVariance);
+
+        // --- Tab 3: 3D Dimensionality Reduction ---
+        const ctx3D = document.getElementById('canvas3D').getContext('2d');
+        const slider3D = document.getElementById('stepSlider3D');
+        const info3D = document.getElementById('info3D');
+
+        // Generate 3D data with specific variances
+        let pts3D = [];
+        for (let i = 0; i < 300; i++) {
+            let u1 = Math.random(), u2 = Math.random();
+            let z1 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            let z2 = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2 * Math.PI * u2);
+            let u3 = Math.random(), u4 = Math.random();
+            let z3 = Math.sqrt(-2 * Math.log(u3)) * Math.cos(2 * Math.PI * u4);
+            // x has most variance, y has second, z has least
+            pts3D.push({ lx: z1 * 90, ly: z2 * 40, lz: z3 * 10 });
+        }
+
+        let angleY = 0;
+        let projFactor = 1.0;
+
+        const explanations3D = [
+            "<strong>Step 1: The 3D Cloud</strong><br><br>Here is a 3D dataset spinning in space. Even though the points exist in 3 dimensions (X, Y, Z), notice how the overall shape is roughly flat, like a pancake or a surfboard.",
+            "<strong>Step 2: The Principal Components</strong><br><br>We calculate the eigenvectors. <br><span class='highlight-pc1'>PC1 (Orange)</span> captures the primary length.<br><span class='highlight-pc2'>PC2 (Blue)</span> captures the width.<br><span class='highlight-pc3'>PC3 (Green)</span> points up through the thinnest part of the cloud.",
+            "<strong>Step 3: Crushing to 2D</strong><br><br>To reduce dimensionality, we simply <strong>drop PC3</strong>. Watch the green line vanish as the Z-axis is crushed to 0. <br><br>The 3D cloud is now a perfectly flat 2D plane. We drastically reduced the size of the data, but kept almost all the important shape information!"
+        ];
+
+        function rotate3D(x, y, z, ax, ay, az) {
+            // X rotation
+            let y1 = y * Math.cos(ax) - z * Math.sin(ax);
+            let z1 = y * Math.sin(ax) + z * Math.cos(ax);
+            // Y rotation
+            let x2 = x * Math.cos(ay) + z1 * Math.sin(ay);
+            let z2 = -x * Math.sin(ay) + z1 * Math.cos(ay);
+            // Z rotation
+            let x3 = x2 * Math.cos(az) - y1 * Math.sin(az);
+            let y3 = x2 * Math.sin(az) + y1 * Math.cos(az);
+            return { x: x3, y: y3, z: z2 };
+        }
+
+        function render3D() {
+            // Only animate if tab is active
+            if (!document.getElementById('dimTab').classList.contains('active')) {
+                requestAnimationFrame(render3D);
+                return;
+            }
+
+            let step = parseInt(slider3D.value);
+            document.getElementById('stepLabel3D').innerText = step;
+            info3D.innerHTML = explanations3D[step - 1];
+
+            // Smoothly animate the projection factor when crushing to 2D
+            let targetProj = (step === 3) ? 0.0 : 1.0;
+            projFactor += (targetProj - projFactor) * 0.08;
+
+            ctx3D.clearRect(0, 0, 450, 450);
+            let cx = 225, cy = 225;
+            angleY += 0.01; // Continuous spin
+
+            // Base static tilt to make it look interesting
+            let tx = 0.5, tz = 0.3;
+
+            // Draw Axes if Step >= 2
+            if (step >= 2) {
+                let axes = [
+                    { lx: 150, ly: 0, lz: 0, color: '#e85d04' }, // PC1
+                    { lx: 0, ly: 80, lz: 0, color: '#00b4d8' }, // PC2
+                    { lx: 0, ly: 0, lz: 40 * projFactor, color: '#10b981' } // PC3 (Crushes)
+                ];
+
+                axes.forEach(axis => {
+                    let p2 = rotate3D(axis.lx, axis.ly, axis.lz, tx, angleY, tz);
+                    let p3 = rotate3D(-axis.lx, -axis.ly, -axis.lz, tx, angleY, tz);
+                    ctx3D.lineWidth = 3;
+                    ctx3D.strokeStyle = axis.color;
+                    ctx3D.beginPath();
+                    ctx3D.moveTo(cx + p3.x, cy - p3.y);
+                    ctx3D.lineTo(cx + p2.x, cy - p2.y);
+                    ctx3D.stroke();
+                });
+            }
+
+            // Draw and depth-sort points
+            let renderedPts = pts3D.map(p => {
+                // Apply the projection factor directly to the local Z (PC3) axis
+                let r = rotate3D(p.lx, p.ly, p.lz * projFactor, tx, angleY, tz);
+                return r;
+            });
+            renderedPts.sort((a, b) => a.z - b.z); // Depth sorting
+
+            renderedPts.forEach(p => {
+                let alpha = Math.max(0.15, Math.min(1, (p.z + 100) / 200));
+                ctx3D.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx3D.beginPath();
+                ctx3D.arc(cx + p.x, cy - p.y, step === 3 ? 2.5 : 2, 0, Math.PI * 2);
+                ctx3D.fill();
+            });
+
+            requestAnimationFrame(render3D);
+        }
+
+        // Init
+        drawPipeline();
+        drawVariance();
+        render3D();
+    </script>
+</body>
+
+</html>
